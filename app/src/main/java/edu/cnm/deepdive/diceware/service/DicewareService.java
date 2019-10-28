@@ -2,6 +2,7 @@ package edu.cnm.deepdive.diceware.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import edu.cnm.deepdive.diceware.BuildConfig;
 import edu.cnm.deepdive.diceware.model.Passphrase;
 import io.reactivex.Observable;
 import io.reactivex.Single;
@@ -17,43 +18,44 @@ import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 
-
 public interface DicewareService {
-
-  static DicewareService getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
 
   @GET("passphrases/")
   Observable<List<Passphrase>> getAll(@Header("Authorization") String token);
 
   @GET("passphrases/{id}")
-  Observable<List<Passphrase>> get(@Header("Authorization") String token, @Path("id") long id);
+  Single<Passphrase> get(@Header("Authorization") String token,
+      @Path("id") long id);
 
   @GET("passphrases/{key}")
-  Observable<List<Passphrase>> get(@Header("Authorization") String token, @Path("key") String key);
+  Single<Passphrase> get(@Header("Authorization") String token,
+      @Path("key") String key);
 
   @DELETE("passphrases/{id}")
   void delete(@Header("Authorization") String token, @Path("id") long id);
 
   @PUT("passphrases/{id}")
-  Single<Passphrase> put(@Header("Authorization") String token, @Path("id") long id,
-      @Body Passphrase passphrase);
+  Single<Passphrase> put(@Header("Authorization") String token, @Path("id") long id, @Body Passphrase passphrase);
 
   @POST("passphrases/")
   Single<Passphrase> post(@Header("Authorization") String token, @Body Passphrase passphrase);
 
+  static DicewareService getInstance() {
+    return InstanceHolder.INSTANCE;
+  }
+
   class InstanceHolder {
 
     private static final DicewareService INSTANCE;
-
     static {
+      // TODO Investigate logging interceptor issues.
       Gson gson = new GsonBuilder()
           .excludeFieldsWithoutExposeAnnotation()
           .create();
       Retrofit retrofit = new Retrofit.Builder()
           .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
           .addConverterFactory(GsonConverterFactory.create(gson))
+          .baseUrl(BuildConfig.BASE_URL)
           .build();
       INSTANCE = retrofit.create(DicewareService.class);
     }

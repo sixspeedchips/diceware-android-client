@@ -4,6 +4,7 @@ import com.google.gson.annotations.Expose;
 import java.util.List;
 
 public class Passphrase {
+
   @Expose
   private long id;
 
@@ -36,4 +37,5 @@ public class Passphrase {
   public void setWords(List<String> words) {
     this.words = words;
   }
+
 }
