@@ -6,19 +6,23 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ProgressBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import edu.cnm.deepdive.diceware.R;
-import edu.cnm.deepdive.diceware.service.DicewareService;
 import edu.cnm.deepdive.diceware.service.GoogleSignInService;
 import edu.cnm.deepdive.diceware.view.PassphraseAdapter;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.schedulers.Schedulers;
+import edu.cnm.deepdive.diceware.viewmodel.MainViewModel;
 
 public class MainActivity extends AppCompatActivity {
+
+
+  private MainViewModel viewModel;
+  private RecyclerView passphraseList;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -26,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     setContentView(R.layout.activity_main);
     Toolbar toolbar = findViewById(R.id.toolbar);
     setSupportActionBar(toolbar);
-
+    ProgressBar waiting = findViewById(R.id.waiting);
     FloatingActionButton fab = findViewById(R.id.fab);
     fab.setOnClickListener(new View.OnClickListener() {
       @Override
@@ -35,32 +39,29 @@ public class MainActivity extends AppCompatActivity {
             .setAction("Action", null).show();
       }
     });
-    RecyclerView passphraseList = findViewById(R.id.keyword_list);
-    GoogleSignInService.getInstance().getAccount().observe(this, (account) -> {
-      if (account != null) {
-        String token = getString(R.string.oauth_header, account.getIdToken());
-        Log.d("Oauth2.0 token", token);
-        DicewareService.getInstance().getAll(token)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe((passphrases) -> {
-              PassphraseAdapter adapter = new PassphraseAdapter(this, passphrases,
-                  (view, position, passphrase) -> {
-                    Log.d("Passphrase click", passphrase.getKey());
-                  },
-                  ((menu, position, passphrase) -> {
-                    //TODO add code o pop up editor.
-                    Log.d("Long press", passphrase.getKey());
-                    getMenuInflater().inflate(R.menu.passphrase_context, menu);
-                    menu.findItem(R.id.delete_passphrase).setOnMenuItemClickListener((menuItem) -> {
-                      Log.d("Delete selected", passphrase.getKey());
-                      // TODO send request to server to delete passphrase; refresh view.
-                      return true;
-                    });
-                  }));
-              passphraseList.setAdapter(adapter);
+    passphraseList = findViewById(R.id.keyword_list);
+    viewModel = ViewModelProviders.of(this).get(MainViewModel.class);
+    GoogleSignInService.getInstance().getAccount().observe(this, (account -> {
+      viewModel.setAccount(account);
+    }));
+    viewModel.getPassphrases().observe(this, (passphrases) -> {
+
+      PassphraseAdapter adapter = new PassphraseAdapter(this, passphrases,
+          (view, position, passphrase) -> {
+            Log.d("Passphrase click", passphrase.getKey());
+          },
+          ((menu, position, passphrase) -> {
+            Log.d("Long press", passphrase.getKey());
+            getMenuInflater().inflate(R.menu.passphrase_context, menu);
+            menu.findItem(R.id.delete_passphrase).setOnMenuItemClickListener((menuItem) -> {
+              waiting.setVisibility(View.VISIBLE);
+              Log.d("Delete selected", passphrase.getKey());
+              viewModel.deletePassphrase(passphrase);
+              return true;
             });
-      }
+          }));
+      passphraseList.setAdapter(adapter);
+      waiting.setVisibility(View.GONE);
     });
   }
 

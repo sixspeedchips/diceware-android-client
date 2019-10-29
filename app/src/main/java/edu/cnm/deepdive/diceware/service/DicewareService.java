@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import edu.cnm.deepdive.diceware.BuildConfig;
 import edu.cnm.deepdive.diceware.model.Passphrase;
+import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import java.util.List;
@@ -32,7 +33,7 @@ public interface DicewareService {
       @Path("key") String key);
 
   @DELETE("passphrases/{id}")
-  void delete(@Header("Authorization") String token, @Path("id") long id);
+  Completable delete(@Header("Authorization") String token, @Path("id") long id);
 
   @PUT("passphrases/{id}")
   Single<Passphrase> put(@Header("Authorization") String token, @Path("id") long id, @Body Passphrase passphrase);
