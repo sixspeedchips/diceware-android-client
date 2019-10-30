@@ -21,6 +21,8 @@ public class MainViewModel extends AndroidViewModel {
       new MutableLiveData<>();
   private final MutableLiveData<GoogleSignInAccount> account =
       new MutableLiveData<>();
+  private final MutableLiveData<Throwable> throwable =
+      new MutableLiveData<>();
 
   public MainViewModel(@NonNull Application application) {
     super(application);
@@ -32,6 +34,16 @@ public class MainViewModel extends AndroidViewModel {
 
   public void setAccount(GoogleSignInAccount account) {
     this.account.setValue(account);
+    refreshPassphrases();
+  }
+
+  public MutableLiveData<Throwable> getThrowable() {
+    return throwable;
+  }
+
+
+  public void refreshPassphrases() {
+    GoogleSignInAccount account = this.account.getValue();
     if (account != null) {
       refreshPassphrases(account);
     } else {
@@ -45,7 +57,9 @@ public class MainViewModel extends AndroidViewModel {
     Log.d("Oauth2.0 token", token);
     DicewareService.getInstance().getAll(token)
         .subscribeOn(Schedulers.io())
-        .subscribe(this.passphrases::postValue);
+        .subscribe(
+            this.passphrases::postValue,
+            this.throwable::postValue);
   }
 
   @SuppressLint("CheckResult")
@@ -55,11 +69,9 @@ public class MainViewModel extends AndroidViewModel {
       String token = getApplication().getString(R.string.oauth_header, account.getIdToken());
       DicewareService.getInstance().delete(token, passphrase.getId())
           .subscribeOn(Schedulers.io())
-          .subscribe(() -> {
-            refreshPassphrases(account);
-          });
-
-
+          .subscribe(
+              () -> refreshPassphrases(account),
+              this.throwable::postValue);
     }
   }
 }

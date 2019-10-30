@@ -7,6 +7,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProviders;
@@ -23,27 +24,20 @@ public class MainActivity extends AppCompatActivity {
 
   private MainViewModel viewModel;
   private RecyclerView passphraseList;
+  private ProgressBar waiting;
+  private GoogleSignInService signInService;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    setContentView(R.layout.activity_main);
-    Toolbar toolbar = findViewById(R.id.toolbar);
-    setSupportActionBar(toolbar);
-    ProgressBar waiting = findViewById(R.id.waiting);
-    FloatingActionButton fab = findViewById(R.id.fab);
-    fab.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-            .setAction("Action", null).show();
-      }
-    });
-    passphraseList = findViewById(R.id.keyword_list);
+    setupUi();
+    setupViewModel();
+    setupSignIn();
+
+  }
+
+  private void setupViewModel() {
     viewModel = ViewModelProviders.of(this).get(MainViewModel.class);
-    GoogleSignInService.getInstance().getAccount().observe(this, (account -> {
-      viewModel.setAccount(account);
-    }));
     viewModel.getPassphrases().observe(this, (passphrases) -> {
 
       PassphraseAdapter adapter = new PassphraseAdapter(this, passphrases,
@@ -55,14 +49,47 @@ public class MainActivity extends AppCompatActivity {
             getMenuInflater().inflate(R.menu.passphrase_context, menu);
             menu.findItem(R.id.delete_passphrase).setOnMenuItemClickListener((menuItem) -> {
               waiting.setVisibility(View.VISIBLE);
+              refreshSignIn(() -> {
+                viewModel.deletePassphrase(passphrase);
+              });
               Log.d("Delete selected", passphrase.getKey());
-              viewModel.deletePassphrase(passphrase);
               return true;
             });
           }));
       passphraseList.setAdapter(adapter);
       waiting.setVisibility(View.GONE);
     });
+    viewModel.getThrowable().observe(this, (throwable) -> {
+      if (throwable != null) {
+        waiting.setVisibility(View.GONE);
+        Toast.makeText(this,
+            String.format("Connection to server failed: %s", throwable.getMessage()),
+            Toast.LENGTH_LONG).show();
+      }
+    });
+  }
+
+  private void setupSignIn() {
+    signInService = GoogleSignInService.getInstance();
+    signInService.getAccount().observe(this, (account -> {
+      viewModel.setAccount(account);
+    }));
+  }
+
+  private void setupUi() {
+    setContentView(R.layout.activity_main);
+    Toolbar toolbar = findViewById(R.id.toolbar);
+    setSupportActionBar(toolbar);
+    FloatingActionButton fab = findViewById(R.id.fab);
+    fab.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+            .setAction("Action", null).show();
+      }
+    });
+    waiting = findViewById(R.id.waiting);
+    passphraseList = findViewById(R.id.keyword_list);
   }
 
   @Override
@@ -82,7 +109,11 @@ public class MainActivity extends AppCompatActivity {
         break;
       case R.id.log_out:
         signOut();
-
+        break;
+      case R.id.refresh:
+        refreshSignIn(() -> {
+          viewModel.refreshPassphrases();
+        });
         break;
       default:
         handled = super.onOptionsItemSelected(item);
@@ -91,11 +122,20 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void signOut() {
-    GoogleSignInService.getInstance().signOut()
+    signInService.signOut()
         .addOnCompleteListener((task) -> {
           Intent intent = new Intent(this, LoginActivity.class);
           intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
           startActivity(intent);
         });
   }
+
+  private void refreshSignIn(Runnable runnable) {
+    signInService.refresh().addOnFailureListener((e) -> {
+      signOut();
+    }).addOnSuccessListener(account -> {
+      runnable.run();
+    });
+  }
+
 }
