@@ -23,6 +23,8 @@ public class MainViewModel extends AndroidViewModel {
       new MutableLiveData<>();
   private final MutableLiveData<Throwable> throwable =
       new MutableLiveData<>();
+  private DicewareService service = DicewareService.getInstance();
+
 
   public MainViewModel(@NonNull Application application) {
     super(application);
@@ -55,13 +57,38 @@ public class MainViewModel extends AndroidViewModel {
   private void refreshPassphrases(GoogleSignInAccount account) {
     String token = getApplication().getString(R.string.oauth_header, account.getIdToken());
     Log.d("Oauth2.0 token", token);
-    DicewareService.getInstance().getAll(token)
+    service.getAll(token)
         .subscribeOn(Schedulers.io())
         .subscribe(
             this.passphrases::postValue,
             this.throwable::postValue);
   }
 
+  @SuppressLint("CheckResult")
+  public void addPassphrase(Passphrase passphrase) {
+    GoogleSignInAccount account = this.account.getValue();
+    if (account != null) {
+      String token = getApplication().getString(R.string.oauth_header, account.getIdToken());
+      service.post(token, passphrase)
+          .subscribeOn(Schedulers.io())
+          .subscribe(
+              (p) -> refreshPassphrases(account),
+              this.throwable::postValue);
+    }
+  }
+
+  @SuppressLint("CheckResult")
+  public void updatePassphrase(Passphrase passphrase) {
+    GoogleSignInAccount account = this.account.getValue();
+    if (account != null) {
+      String token = getApplication().getString(R.string.oauth_header, account.getIdToken());
+      service.put(token, passphrase.getId(), passphrase)
+          .subscribeOn(Schedulers.io())
+          .subscribe(
+              (p) -> refreshPassphrases(account),
+              this.throwable::postValue);
+    }
+  }
   @SuppressLint("CheckResult")
   public void deletePassphrase(Passphrase passphrase) {
     GoogleSignInAccount account = this.account.getValue();

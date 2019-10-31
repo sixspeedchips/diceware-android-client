@@ -13,7 +13,6 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 import edu.cnm.deepdive.diceware.R;
 import edu.cnm.deepdive.diceware.service.GoogleSignInService;
 import edu.cnm.deepdive.diceware.view.PassphraseAdapter;
@@ -43,6 +42,12 @@ public class MainActivity extends AppCompatActivity {
       PassphraseAdapter adapter = new PassphraseAdapter(this, passphrases,
           (view, position, passphrase) -> {
             Log.d("Passphrase click", passphrase.getKey());
+            PassphraseFragment fragment = PassphraseFragment.newInstance(passphrase);
+            fragment.setListener((p) -> {
+              waiting.setVisibility(View.VISIBLE);
+              viewModel.updatePassphrase(p);
+            });
+            fragment.show(getSupportFragmentManager(), fragment.getClass().getSimpleName());
           },
           ((menu, position, passphrase) -> {
             Log.d("Long press", passphrase.getKey());
@@ -81,13 +86,15 @@ public class MainActivity extends AppCompatActivity {
     Toolbar toolbar = findViewById(R.id.toolbar);
     setSupportActionBar(toolbar);
     FloatingActionButton fab = findViewById(R.id.fab);
-    fab.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-            .setAction("Action", null).show();
-      }
+    fab.setOnClickListener(view -> {
+      PassphraseFragment fragment = PassphraseFragment.newInstance();
+      fragment.setListener((passphrase) -> {
+        waiting.setVisibility(View.VISIBLE);
+        viewModel.addPassphrase(passphrase);
+      });
+      fragment.show(getSupportFragmentManager(), fragment.getClass().getSimpleName());
     });
+
     waiting = findViewById(R.id.waiting);
     passphraseList = findViewById(R.id.keyword_list);
   }
