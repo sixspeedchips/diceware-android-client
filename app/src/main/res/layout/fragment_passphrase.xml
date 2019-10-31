@@ -5,18 +5,19 @@
   xmlns:app="http://schemas.android.com/apk/res-auto"
   android:layout_width="match_parent"
   android:layout_height="wrap_content"
-  android:padding="@dimen/passphrase_fragment_padding"
+  android:padding="@dimen/dialog_spacing"
   tools:context=".controller.PassphraseFragment">
+
   <androidx.constraintlayout.widget.ConstraintLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
     <com.google.android.material.textfield.TextInputLayout
+      android:id="@+id/passphrase_key_layout"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      app:hintAnimationEnabled="true"
       app:hintEnabled="true"
-      app:layout_constraintEnd_toEndOf="parent"
+      app:hintAnimationEnabled="true"
       app:layout_constraintStart_toStartOf="parent"
       app:layout_constraintTop_toTopOf="parent">
 
@@ -24,14 +25,31 @@
         android:id="@+id/passphrase_key"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/hint_passphrase_key"
         android:inputType="text"
-        />
+        android:hint="@string/passphrase_key"/>
 
     </com.google.android.material.textfield.TextInputLayout>
 
+    <com.google.android.material.textfield.TextInputLayout
+      android:id="@+id/passphrase_words_layout"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="@dimen/dialog_spacing"
+      app:hintAnimationEnabled="true"
+      app:hintEnabled="true"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@id/passphrase_key_layout">
+
+      <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/passphrase_words"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/passphrase_words"
+        android:inputType="textMultiLine"
+        android:lines="3"/>
+
+    </com.google.android.material.textfield.TextInputLayout>
 
   </androidx.constraintlayout.widget.ConstraintLayout>
-
 
 </ScrollView>
